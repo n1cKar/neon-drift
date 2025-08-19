@@ -121,7 +121,17 @@ export default function Home() {
 
 
 
-  const handleMove = (x: number, y: number) => setPlayerPos({ x, y });
+  //  const handleMove = (x: number, y: number) => setPlayerPos({ x, y });
+
+  // player can only move screen hight and width
+  const handleMove = (x: number, y: number) => {
+    // clamp player position inside game area
+    const clampedX = Math.max(20, Math.min(x, gameWidth - 20)); // 20 = dot radius
+    const clampedY = Math.max(20, Math.min(y, gameHeight - 20));
+
+    setPlayerPos({ x: clampedX, y: clampedY });
+  };
+
 
   const handleTouch = (e: React.TouchEvent) => {
     const rect = gameAreaRef.current?.getBoundingClientRect();
@@ -186,7 +196,7 @@ export default function Home() {
               setObstacles([]);
               setRunning(true);
               // Extrem mode resets
-              setExtremeMode(false); 
+              setExtremeMode(false);
               setLastExtremeScore(0); // Reset to allow extreme mode again
             }}
             className="mt-4 px-4 py-2 bg-green-500 rounded-xl"
