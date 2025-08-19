@@ -34,6 +34,9 @@ export default function Home() {
   const [extremeMode, setExtremeMode] = useState(false);
   const [lastExtremeScore, setLastExtremeScore] = useState(0);
 
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialCountdown, setTutorialCountdown] = useState(3); // ⬅ countdown state
+
   // Update game area dimensions dynamically
   useEffect(() => {
     const updateSize = () => {
@@ -47,9 +50,26 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  // Tutorial countdown effect
+  useEffect(() => {
+    if (showTutorial) {
+      setTutorialCountdown(3);
+      let count = 3;
+      const interval = setInterval(() => {
+        count -= 1;
+        setTutorialCountdown(count);
+        if (count === 0) {
+          clearInterval(interval);
+          setShowTutorial(false);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [showTutorial]);
+
   // Game loop
   useEffect(() => {
-    if (!running) return;
+    if (!running || showTutorial) return;
 
     let animationFrame: number;
     let lastTime = performance.now();
@@ -64,16 +84,29 @@ export default function Home() {
       const scoreFloor = Math.floor(score);
 
       // Trigger soft extreme mode every multiple of 20
-      if (!extremeMode && scoreFloor % 20 === 0 && scoreFloor > 0 && scoreFloor !== lastExtremeScore) {
+      if (
+        !extremeMode &&
+        scoreFloor % 20 === 0 &&
+        scoreFloor > 0 &&
+        scoreFloor !== lastExtremeScore
+      ) {
         setExtremeMode(true);
         setLastExtremeScore(scoreFloor);
-        setTimeout(() => setExtremeMode(false), 5000); // 5-second bursts
+        setTimeout(() => setExtremeMode(false), 5000);
       }
 
-      // Spawn chance & obstacle count adjustment
-      const spawnChance = extremeMode ? 0.08 : Math.min(0.02 + timeElapsed * 0.005, 0.3);
+      // Spawn chance
+      const spawnChance = extremeMode
+        ? 0.08
+        : Math.min(0.02 + timeElapsed * 0.005, 0.3);
+
       if (Math.random() < spawnChance) {
-        const shapes: ObstacleType["shape"][] = ["square", "rectangle", "triangle", "diamond"];
+        const shapes: ObstacleType["shape"][] = [
+          "square",
+          "rectangle",
+          "triangle",
+          "diamond",
+        ];
         const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
         const obstacleCount = extremeMode ? 2 : Math.random() < 0.3 ? 2 : 1;
 
@@ -84,18 +117,22 @@ export default function Home() {
             x: Math.random() * gameWidth,
             y: -20,
             size: 15 + Math.random() * 25,
-            speed: 2 + Math.random() * 3 + timeElapsed * 0.05 + (extremeMode ? 0.5 : 0),
+            speed:
+              2 +
+              Math.random() * 3 +
+              timeElapsed * 0.05 +
+              (extremeMode ? 0.5 : 0),
             shape: randomShape,
           })),
         ]);
       }
 
-      // Move obstacles & gradual speed increase
+      // Move obstacles
       setObstacles((obs) =>
         obs
           .map((o) => ({
             ...o,
-            speed: o.speed + timeElapsed * 0.008, // softer speed increase
+            speed: o.speed + timeElapsed * 0.008,
             y: o.y + o.speed,
           }))
           .filter((o) => o.y < gameHeight)
@@ -117,21 +154,24 @@ export default function Home() {
 
     animationFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrame);
-  }, [running, playerPos, obstacles, score, gameWidth, gameHeight, extremeMode, lastExtremeScore]);
+  }, [
+    running,
+    playerPos,
+    obstacles,
+    score,
+    gameWidth,
+    gameHeight,
+    extremeMode,
+    lastExtremeScore,
+    showTutorial,
+  ]);
 
-
-
-  //  const handleMove = (x: number, y: number) => setPlayerPos({ x, y });
-
-  // player can only move screen hight and width
+  // Player movement
   const handleMove = (x: number, y: number) => {
-    // clamp player position inside game area
-    const clampedX = Math.max(20, Math.min(x, gameWidth - 20)); // 20 = dot radius
+    const clampedX = Math.max(20, Math.min(x, gameWidth - 20));
     const clampedY = Math.max(20, Math.min(y, gameHeight - 20));
-
     setPlayerPos({ x: clampedX, y: clampedY });
   };
-
 
   const handleTouch = (e: React.TouchEvent) => {
     const rect = gameAreaRef.current?.getBoundingClientRect();
@@ -165,14 +205,15 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/80 text-white text-2xl">
           <div className="flex flex-col justify-center items-center h-full">
             <p className="mb-10 font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(0,255,255,0.7)] text-4xl">
-              IS Neon Drift
+              Neon Drift
             </p>
             <button
               onClick={() => {
                 setShowStart(false);
-                setRunning(true);
                 setScore(0);
                 setObstacles([]);
+                setRunning(true);
+                setShowTutorial(true); // show tutorial
               }}
               className="px-6 py-3 bg-green-500 rounded-xl text-lg"
             >
@@ -185,8 +226,34 @@ export default function Home() {
         </div>
       )}
 
+      {/* Tutorial Screen */}
+      {showTutorial && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50">
+          <p className="text-2xl font-bold text-blue-400 animate-pulse mb-6">
+            Move the ball to dodge obstacles!
+          </p>
+
+          {/* Show ball at start position */}
+          <div
+            className="absolute bg-pink-500 rounded-full shadow-[0_0_15px_rgba(255,0,255,0.8)]"
+            style={{
+              left: playerPos.x - 20,
+              top: playerPos.y - 20,
+              width: 20,
+              height: 20,
+            }}
+          ></div>
+
+          {/* Countdown text */}
+          <p className="text-6xl font-bold text-pink-400 drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]">
+            {tutorialCountdown > 0 ? tutorialCountdown : "GO!"}
+          </p>
+        </div>
+      )}
+
+
       {/* Game Over Screen */}
-      {!running && !showStart && (
+      {!running && !showStart && !showTutorial && (
         <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/70 text-white text-xl">
           <p>Game Over</p>
           <p className="mt-2">Score: {Math.floor(score)}</p>
@@ -195,9 +262,9 @@ export default function Home() {
               setScore(0);
               setObstacles([]);
               setRunning(true);
-              // Extrem mode resets
               setExtremeMode(false);
-              setLastExtremeScore(0); // Reset to allow extreme mode again
+              setLastExtremeScore(0);
+              setShowTutorial(true);
             }}
             className="mt-4 px-4 py-2 bg-green-500 rounded-xl"
           >
