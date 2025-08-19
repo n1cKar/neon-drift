@@ -20,8 +20,8 @@ export default function Dot({ x, y }: { x: number; y: number }) {
       style={{
         left: x - 20,
         top: y - 20,
-        width: 40,
-        height: 40,
+        width: 20,
+        height: 20,
         backgroundColor: color,
         boxShadow: `0 0 10px ${color}, 0 0 20px ${color}, 0 0 30px ${color}`,
       }}

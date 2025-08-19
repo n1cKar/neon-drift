@@ -63,15 +63,15 @@ export default function Home() {
 
       const scoreFloor = Math.floor(score);
 
-      // Trigger extreme mode every multiple of 20
+      // Trigger soft extreme mode every multiple of 20
       if (!extremeMode && scoreFloor % 20 === 0 && scoreFloor > 0 && scoreFloor !== lastExtremeScore) {
         setExtremeMode(true);
         setLastExtremeScore(scoreFloor);
-        setTimeout(() => setExtremeMode(false), 5000); // 5 seconds bursts
+        setTimeout(() => setExtremeMode(false), 5000); // 5-second bursts
       }
 
       // Spawn chance & obstacle count adjustment
-      const spawnChance = extremeMode ? 0.1 : Math.min(0.02 + timeElapsed * 0.005, 0.3);
+      const spawnChance = extremeMode ? 0.08 : Math.min(0.02 + timeElapsed * 0.005, 0.3);
       if (Math.random() < spawnChance) {
         const shapes: ObstacleType["shape"][] = ["square", "rectangle", "triangle", "diamond"];
         const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
@@ -84,7 +84,7 @@ export default function Home() {
             x: Math.random() * gameWidth,
             y: -20,
             size: 15 + Math.random() * 25,
-            speed: 2 + Math.random() * 3 + timeElapsed * 0.05 + (extremeMode ? 1 : 0), // slight boost
+            speed: 2 + Math.random() * 3 + timeElapsed * 0.05 + (extremeMode ? 0.5 : 0),
             shape: randomShape,
           })),
         ]);
@@ -95,7 +95,7 @@ export default function Home() {
         obs
           .map((o) => ({
             ...o,
-            speed: o.speed + timeElapsed * 0.01,
+            speed: o.speed + timeElapsed * 0.008, // softer speed increase
             y: o.y + o.speed,
           }))
           .filter((o) => o.y < gameHeight)
@@ -118,6 +118,7 @@ export default function Home() {
     animationFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrame);
   }, [running, playerPos, obstacles, score, gameWidth, gameHeight, extremeMode, lastExtremeScore]);
+
 
 
   const handleMove = (x: number, y: number) => setPlayerPos({ x, y });
