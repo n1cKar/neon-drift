@@ -57,34 +57,37 @@ export default function Home() {
       lastTime = time;
 
       timeElapsed += delta * 0.001; // seconds survived
-
-      // Update score
       setScore((s) => s + delta * 0.001);
 
-      // Spawn obstacles randomly
-      if (Math.random() < 0.02) {
+      // Dynamic difficulty: spawn rate increases over time
+      const spawnChance = Math.min(0.02 + timeElapsed * 0.005, 0.3); // max 30% chance
+
+      if (Math.random() < spawnChance) {
         const shapes: ObstacleType["shape"][] = ["square", "rectangle", "triangle", "diamond"];
         const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
 
+        // Sometimes spawn multiple obstacles at once
+        const obstacleCount = Math.random() < 0.3 ? 2 : 1;
+
         setObstacles((obs) => [
           ...obs,
-          {
-            id: Date.now(),
+          ...Array.from({ length: obstacleCount }).map(() => ({
+            id: Date.now() + Math.random(),
             x: Math.random() * gameWidth,
             y: -20,
-            size: 20 + Math.random() * 20,
-            speed: 1 + Math.random() * 3, // base speed
+            size: 15 + Math.random() * 25, // more size variation
+            speed: 2 + Math.random() * 3 + timeElapsed * 0.05, // faster increase
             shape: randomShape,
-          },
+          })),
         ]);
       }
 
-      // Move obstacles & increase their speed over time
+      // Move obstacles & increase speed gradually
       setObstacles((obs) =>
         obs
           .map((o) => ({
             ...o,
-            speed: o.speed + timeElapsed * 0.01, // gradually increase speed
+            speed: o.speed + timeElapsed * 0.01, // continuous speed increase
             y: o.y + o.speed,
           }))
           .filter((o) => o.y < gameHeight)
@@ -107,6 +110,7 @@ export default function Home() {
     animationFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrame);
   }, [running, playerPos, obstacles, score, gameWidth, gameHeight]);
+
 
   // Handle touch / mouse drag
   const handleMove = (x: number, y: number) => {
