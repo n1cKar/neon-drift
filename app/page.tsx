@@ -31,6 +31,9 @@ export default function Home() {
   const [gameWidth, setGameWidth] = useState(400);
   const [gameHeight, setGameHeight] = useState(800);
 
+  const [extremeMode, setExtremeMode] = useState(false);
+  const [lastExtremeScore, setLastExtremeScore] = useState(0);
+
   // Update game area dimensions dynamically
   useEffect(() => {
     const updateSize = () => {
@@ -55,19 +58,24 @@ export default function Home() {
     const loop = (time: number) => {
       const delta = time - lastTime;
       lastTime = time;
-
-      timeElapsed += delta * 0.001; // seconds survived
+      timeElapsed += delta * 0.001;
       setScore((s) => s + delta * 0.001);
 
-      // Dynamic difficulty: spawn rate increases over time
-      const spawnChance = Math.min(0.02 + timeElapsed * 0.005, 0.3); // max 30% chance
+      const scoreFloor = Math.floor(score);
 
+      // Trigger extreme mode every multiple of 20
+      if (!extremeMode && scoreFloor % 20 === 0 && scoreFloor > 0 && scoreFloor !== lastExtremeScore) {
+        setExtremeMode(true);
+        setLastExtremeScore(scoreFloor);
+        setTimeout(() => setExtremeMode(false), 5000); // 5 seconds bursts
+      }
+
+      // Spawn chance & obstacle count adjustment
+      const spawnChance = extremeMode ? 0.1 : Math.min(0.02 + timeElapsed * 0.005, 0.3);
       if (Math.random() < spawnChance) {
         const shapes: ObstacleType["shape"][] = ["square", "rectangle", "triangle", "diamond"];
         const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
-
-        // Sometimes spawn multiple obstacles at once
-        const obstacleCount = Math.random() < 0.3 ? 2 : 1;
+        const obstacleCount = extremeMode ? 2 : Math.random() < 0.3 ? 2 : 1;
 
         setObstacles((obs) => [
           ...obs,
@@ -75,19 +83,19 @@ export default function Home() {
             id: Date.now() + Math.random(),
             x: Math.random() * gameWidth,
             y: -20,
-            size: 15 + Math.random() * 25, // more size variation
-            speed: 2 + Math.random() * 3 + timeElapsed * 0.05, // faster increase
+            size: 15 + Math.random() * 25,
+            speed: 2 + Math.random() * 3 + timeElapsed * 0.05 + (extremeMode ? 1 : 0), // slight boost
             shape: randomShape,
           })),
         ]);
       }
 
-      // Move obstacles & increase speed gradually
+      // Move obstacles & gradual speed increase
       setObstacles((obs) =>
         obs
           .map((o) => ({
             ...o,
-            speed: o.speed + timeElapsed * 0.01, // continuous speed increase
+            speed: o.speed + timeElapsed * 0.01,
             y: o.y + o.speed,
           }))
           .filter((o) => o.y < gameHeight)
@@ -109,13 +117,10 @@ export default function Home() {
 
     animationFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrame);
-  }, [running, playerPos, obstacles, score, gameWidth, gameHeight]);
+  }, [running, playerPos, obstacles, score, gameWidth, gameHeight, extremeMode, lastExtremeScore]);
 
 
-  // Handle touch / mouse drag
-  const handleMove = (x: number, y: number) => {
-    setPlayerPos({ x, y });
-  };
+  const handleMove = (x: number, y: number) => setPlayerPos({ x, y });
 
   const handleTouch = (e: React.TouchEvent) => {
     const rect = gameAreaRef.current?.getBoundingClientRect();
@@ -125,11 +130,10 @@ export default function Home() {
   };
 
   const handleMouse = (e: React.MouseEvent) => {
-    if (e.buttons === 1) {
-      const rect = gameAreaRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      handleMove(e.clientX - rect.left, e.clientY - rect.top);
-    }
+    if (e.buttons !== 1) return;
+    const rect = gameAreaRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    handleMove(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   return (
@@ -150,7 +154,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/80 text-white text-2xl">
           <div className="flex flex-col justify-center items-center h-full">
             <p className="mb-10 font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(0,255,255,0.7)] text-4xl">
-              Neon Drift
+              IS Neon Drift
             </p>
             <button
               onClick={() => {

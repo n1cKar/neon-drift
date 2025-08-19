@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Neon Drift",
+  title: "IS Neon Drift",
   description: "Dodge falling obstacles as a neon dot in this fast-paced, mobile-friendly reflex game.",
 };
 
