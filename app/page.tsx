@@ -185,7 +185,9 @@ export default function Home() {
               setScore(0);
               setObstacles([]);
               setRunning(true);
-              setExtremeMode(false);
+              // Extrem mode resets
+              setExtremeMode(false); 
+              setLastExtremeScore(0); // Reset to allow extreme mode again
             }}
             className="mt-4 px-4 py-2 bg-green-500 rounded-xl"
           >
