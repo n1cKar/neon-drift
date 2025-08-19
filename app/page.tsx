@@ -1,103 +1,188 @@
-import Image from "next/image";
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import Dot from "@/components/Dot";
+import Obstacle from "@/components/Obstacle";
+import ScoreBoard from "@/components/ScoreBoard";
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface ObstacleType {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  shape: "square" | "rectangle" | "triangle" | "diamond";
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const gameAreaRef = useRef<HTMLDivElement>(null);
+  const [playerPos, setPlayerPos] = useState<Position>({ x: 150, y: 400 });
+  const [obstacles, setObstacles] = useState<ObstacleType[]>([]);
+  const [running, setRunning] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [showStart, setShowStart] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [gameWidth, setGameWidth] = useState(400);
+  const [gameHeight, setGameHeight] = useState(800);
+
+  // Update game area dimensions dynamically
+  useEffect(() => {
+    const updateSize = () => {
+      if (gameAreaRef.current) {
+        setGameWidth(gameAreaRef.current.clientWidth);
+        setGameHeight(gameAreaRef.current.clientHeight);
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  // Game loop
+  useEffect(() => {
+    if (!running) return;
+
+    let animationFrame: number;
+    let lastTime = performance.now();
+    let timeElapsed = 0;
+
+    const loop = (time: number) => {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      timeElapsed += delta * 0.001; // seconds survived
+
+      // Update score
+      setScore((s) => s + delta * 0.001);
+
+      // Spawn obstacles randomly
+      if (Math.random() < 0.02) {
+        const shapes: ObstacleType["shape"][] = ["square", "rectangle", "triangle", "diamond"];
+        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+
+        setObstacles((obs) => [
+          ...obs,
+          {
+            id: Date.now(),
+            x: Math.random() * gameWidth,
+            y: -20,
+            size: 20 + Math.random() * 20,
+            speed: 1 + Math.random() * 3, // base speed
+            shape: randomShape,
+          },
+        ]);
+      }
+
+      // Move obstacles & increase their speed over time
+      setObstacles((obs) =>
+        obs
+          .map((o) => ({
+            ...o,
+            speed: o.speed + timeElapsed * 0.01, // gradually increase speed
+            y: o.y + o.speed,
+          }))
+          .filter((o) => o.y < gameHeight)
+      );
+
+      // Collision detection
+      obstacles.forEach((o) => {
+        const dx = playerPos.x - o.x;
+        const dy = playerPos.y - o.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < 20 + o.size / 2) {
+          setRunning(false);
+          setHighScore((h) => Math.max(h, Math.floor(score)));
+        }
+      });
+
+      animationFrame = requestAnimationFrame(loop);
+    };
+
+    animationFrame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [running, playerPos, obstacles, score, gameWidth, gameHeight]);
+
+  // Handle touch / mouse drag
+  const handleMove = (x: number, y: number) => {
+    setPlayerPos({ x, y });
+  };
+
+  const handleTouch = (e: React.TouchEvent) => {
+    const rect = gameAreaRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const touch = e.touches[0];
+    handleMove(touch.clientX - rect.left, touch.clientY - rect.top);
+  };
+
+  const handleMouse = (e: React.MouseEvent) => {
+    if (e.buttons === 1) {
+      const rect = gameAreaRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      handleMove(e.clientX - rect.left, e.clientY - rect.top);
+    }
+  };
+
+  return (
+    <div
+      ref={gameAreaRef}
+      onTouchMove={handleTouch}
+      onMouseMove={handleMouse}
+      className="relative w-full max-w-md h-[80vh] bg-gradient-to-b from-gray-900 to-black overflow-hidden rounded-2xl mx-auto mt-5 touch-none"
+    >
+      <ScoreBoard score={Math.floor(score)} highScore={highScore} />
+      <Dot x={playerPos.x} y={playerPos.y} />
+      {obstacles.map((o) => (
+        <Obstacle key={o.id} x={o.x} y={o.y} size={o.size} shape={o.shape} />
+      ))}
+
+      {/* Start Screen */}
+      {showStart && (
+        <div className="absolute inset-0 bg-black/80 text-white text-2xl">
+          <div className="flex flex-col justify-center items-center h-full">
+            <p className="mb-10 font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(0,255,255,0.7)] text-4xl">
+              Neon Drift
+            </p>
+            <button
+              onClick={() => {
+                setShowStart(false);
+                setRunning(true);
+                setScore(0);
+                setObstacles([]);
+              }}
+              className="px-6 py-3 bg-green-500 rounded-xl text-lg"
+            >
+              Start Game
+            </button>
+          </div>
+          <footer className="absolute bottom-2 w-full text-center text-white text-sm">
+            Made by Nimash Mendis
+          </footer>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {/* Game Over Screen */}
+      {!running && !showStart && (
+        <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/70 text-white text-xl">
+          <p>Game Over</p>
+          <p className="mt-2">Score: {Math.floor(score)}</p>
+          <button
+            onClick={() => {
+              setScore(0);
+              setObstacles([]);
+              setRunning(true);
+            }}
+            className="mt-4 px-4 py-2 bg-green-500 rounded-xl"
+          >
+            Restart
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Neon Drift
 
-## Getting Started
+Neon Drift is a fast-paced, mobile-friendly reflex game where you control a neon dot and dodge falling obstacles. The game becomes progressively harder as obstacles speed up, featuring vibrant neon colors and simple touch/mouse controls.
 
-First, run the development server:
+## Features
+
+- Drag the neon dot to dodge obstacles
+- Randomly changing neon dot colors
+- Obstacles of multiple shapes: square, rectangle, triangle, diamond
+- Score increases with survival time
+- Increasing difficulty over time
+- Start screen and Game Over screen
+- Mobile and desktop friendly
+
+## Demo
+
+- Demo link [Neon Drift]()
+
+## Images
+
+![1](./app_pics/1.png)
+![2](./app_pics/2.png)
+![3](./app_pics/3.png)
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/n1cKar/neon-drift.git
+cd neon-drift
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open http://localhost:3000 in your browser to play.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Controls
 
-## Learn More
+- Touch (mobile): Drag your finger to move the dot.
+- Mouse (desktop): Click and drag the dot to move.
 
-To learn more about Next.js, take a look at the following resources:
+## Built With
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js
+- TypeScript
+- Tailwind CSS
+- React
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contact 
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- For questions, suggestions, or feedback, reach out via email: [Nimash Mendis](emailto:nimash.mendis0202@gmail.com)
