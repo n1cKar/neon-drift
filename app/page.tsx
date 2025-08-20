@@ -35,9 +35,22 @@ export default function Home() {
   const [lastExtremeScore, setLastExtremeScore] = useState(0);
 
   const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialCountdown, setTutorialCountdown] = useState(3); // ⬅ countdown state
+  const [tutorialCountdown, setTutorialCountdown] = useState(3);
 
-  // Update game area dimensions dynamically
+  const [bossMode, setBossMode] = useState(false);
+  const [lastBossScore, setLastBossScore] = useState(0);
+
+  // pool of available shapes
+  const shapes: ObstacleType["shape"][] = [
+    "square",
+    "rectangle",
+    "triangle",
+    "diamond",
+  ];
+  const getRandomShape = () =>
+    shapes[Math.floor(Math.random() * shapes.length)];
+
+  // update game area size dynamically
   useEffect(() => {
     const updateSize = () => {
       if (gameAreaRef.current) {
@@ -50,7 +63,7 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Tutorial countdown effect
+  // tutorial countdown
   useEffect(() => {
     if (showTutorial) {
       setTutorialCountdown(3);
@@ -67,7 +80,7 @@ export default function Home() {
     }
   }, [showTutorial]);
 
-  // Game loop
+  // game loop
   useEffect(() => {
     if (!running || showTutorial) return;
 
@@ -79,11 +92,44 @@ export default function Home() {
       const delta = time - lastTime;
       lastTime = time;
       timeElapsed += delta * 0.001;
-      setScore((s) => s + delta * 0.001);
+
+      // score does not increase during boss mode
+      if (!bossMode) {
+        setScore((s) => s + delta * 0.001);
+      }
 
       const scoreFloor = Math.floor(score);
 
-      // Trigger soft extreme mode every multiple of 20
+      // Boss Mode Trigger 
+      if (
+        !bossMode &&
+        scoreFloor % 10 === 0 &&
+        scoreFloor > 0 &&
+        scoreFloor !== lastBossScore
+      ) {
+        setBossMode(true);
+        setLastBossScore(scoreFloor);
+
+        // drop one big obstacle fast
+        setObstacles((obs) => [
+          ...obs,
+          {
+            id: Date.now() + Math.random(),
+            //x: gameWidth / 2,
+            x: Math.random() * (gameWidth - 140) + 70,  // drops random positon 
+            y: -150,
+            size: 150,
+            speed: 8, // fast drop
+            shape: getRandomShape(),
+          },
+        ]);
+
+        setTimeout(() => {
+          setBossMode(false);
+        }, 2000);
+      }
+
+      // Extreme Mode Trigger 
       if (
         !extremeMode &&
         scoreFloor % 20 === 0 &&
@@ -92,39 +138,35 @@ export default function Home() {
       ) {
         setExtremeMode(true);
         setLastExtremeScore(scoreFloor);
+
         setTimeout(() => setExtremeMode(false), 5000);
       }
 
-      // Spawn chance
-      const spawnChance = extremeMode
-        ? 0.08
-        : Math.min(0.02 + timeElapsed * 0.005, 0.3);
+      // Normal / Extreme Spawns (disabled during boss) 
+      if (!bossMode) {
+        const spawnChance = extremeMode
+          ? 0.08
+          : Math.min(0.02 + timeElapsed * 0.005, 0.3);
 
-      if (Math.random() < spawnChance) {
-        const shapes: ObstacleType["shape"][] = [
-          "square",
-          "rectangle",
-          "triangle",
-          "diamond",
-        ];
-        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
-        const obstacleCount = extremeMode ? 2 : Math.random() < 0.3 ? 2 : 1;
+        if (Math.random() < spawnChance) {
+          const obstacleCount = extremeMode ? 2 : Math.random() < 0.3 ? 2 : 1;
 
-        setObstacles((obs) => [
-          ...obs,
-          ...Array.from({ length: obstacleCount }).map(() => ({
-            id: Date.now() + Math.random(),
-            x: Math.random() * gameWidth,
-            y: -20,
-            size: 15 + Math.random() * 25,
-            speed:
-              2 +
-              Math.random() * 3 +
-              timeElapsed * 0.05 +
-              (extremeMode ? 0.5 : 0),
-            shape: randomShape,
-          })),
-        ]);
+          setObstacles((obs) => [
+            ...obs,
+            ...Array.from({ length: obstacleCount }).map(() => ({
+              id: Date.now() + Math.random(),
+              x: Math.random() * gameWidth,
+              y: -20,
+              size: 15 + Math.random() * 25,
+              speed:
+                2 +
+                Math.random() * 3 +
+                timeElapsed * 0.05 +
+                (extremeMode ? 0.5 : 0),
+              shape: getRandomShape(),
+            })),
+          ]);
+        }
       }
 
       // Move obstacles
@@ -138,7 +180,7 @@ export default function Home() {
           .filter((o) => o.y < gameHeight)
       );
 
-      // Collision detection
+      // Collision detection 
       obstacles.forEach((o) => {
         const dx = playerPos.x - o.x;
         const dy = playerPos.y - o.y;
@@ -164,9 +206,12 @@ export default function Home() {
     extremeMode,
     lastExtremeScore,
     showTutorial,
+    bossMode,
+    lastBossScore,
   ]);
 
-  // Player movement
+
+  // player movement
   const handleMove = (x: number, y: number) => {
     const clampedX = Math.max(20, Math.min(x, gameWidth - 20));
     const clampedY = Math.max(20, Math.min(y, gameHeight - 20));
@@ -213,7 +258,7 @@ export default function Home() {
                 setScore(0);
                 setObstacles([]);
                 setRunning(true);
-                setShowTutorial(true); // show tutorial
+                setShowTutorial(true);
               }}
               className="px-6 py-3 bg-green-500 rounded-xl text-lg"
             >
@@ -233,7 +278,7 @@ export default function Home() {
             Move the ball to dodge obstacles!
           </p>
 
-          {/* Show ball at start position */}
+          {/* Show player ball */}
           <div
             className="absolute bg-pink-500 rounded-full shadow-[0_0_15px_rgba(255,0,255,0.8)]"
             style={{
@@ -242,15 +287,14 @@ export default function Home() {
               width: 20,
               height: 20,
             }}
-          ></div>
+          />
 
-          {/* Countdown text */}
-          <p className="text-6xl font-bold text-pink-400 drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]">
+          {/* Countdown */}
+          <p className="text-6xl font-bold text-pink-400 drop-shadow-[0_0_10px_rgba(255,0,255,0.8)] mt-20">
             {tutorialCountdown > 0 ? tutorialCountdown : "GO!"}
           </p>
         </div>
       )}
-
 
       {/* Game Over Screen */}
       {!running && !showStart && !showTutorial && (
@@ -263,6 +307,8 @@ export default function Home() {
               setObstacles([]);
               setRunning(true);
               setExtremeMode(false);
+              setLastExtremeScore(0);
+              setBossMode(false);
               setLastExtremeScore(0);
               setShowTutorial(true);
             }}
