@@ -1,35 +1,26 @@
-// lib/mongodb.ts
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient } from "mongodb";
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://nimashmendis0202:<db_password>@cluster0.oltgqj0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri =
+  "mongodb+srv://nimashmendis0202:6VENXMpy8Mbl12tL@cluster0.oltgqj0.mongodb.net/?retryWrites=true&w=majority";
+
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
 if (!process.env.MONGODB_URI) {
-  throw new Error("Please add your Mongo URI to .env.local");
+  // In case you want to keep it in env
+  process.env.MONGODB_URI = uri;
 }
 
 if (process.env.NODE_ENV === "development") {
-  // In dev mode, use a global variable so the value is preserved
+  // use global variable to preserve client across hot reloads
   if (!(global as any)._mongoClientPromise) {
-    client = new MongoClient(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-    });
+    client = new MongoClient(process.env.MONGODB_URI);
     (global as any)._mongoClientPromise = client.connect();
   }
   clientPromise = (global as any)._mongoClientPromise;
 } else {
-  client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    },
-  });
+  // production mode
+  client = new MongoClient(process.env.MONGODB_URI);
   clientPromise = client.connect();
 }
 
