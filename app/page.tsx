@@ -40,6 +40,12 @@ export default function Home() {
   const [bossMode, setBossMode] = useState(false);
   const [lastBossScore, setLastBossScore] = useState(0);
 
+  // 🌍 Leaderboard states
+  const [username, setUsername] = useState("");
+  const [usernameSet, setUsernameSet] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   // pool of available shapes
   const shapes: ObstacleType["shape"][] = [
     "square",
@@ -100,7 +106,7 @@ export default function Home() {
 
       const scoreFloor = Math.floor(score);
 
-      // Boss Mode Trigger 
+      // Boss Mode Trigger
       if (
         !bossMode &&
         scoreFloor % 10 === 0 &&
@@ -110,16 +116,14 @@ export default function Home() {
         setBossMode(true);
         setLastBossScore(scoreFloor);
 
-        // drop one big obstacle fast
         setObstacles((obs) => [
           ...obs,
           {
             id: Date.now() + Math.random(),
-            //x: gameWidth / 2,
-            x: Math.random() * (gameWidth - 140) + 70,  // drops random positon 
+            x: Math.random() * (gameWidth - 140) + 70,
             y: -150,
             size: 150,
-            speed: 8, // fast drop
+            speed: 8,
             shape: getRandomShape(),
           },
         ]);
@@ -129,7 +133,7 @@ export default function Home() {
         }, 2000);
       }
 
-      // Extreme Mode Trigger 
+      // Extreme Mode Trigger
       if (
         !extremeMode &&
         scoreFloor % 20 === 0 &&
@@ -142,7 +146,7 @@ export default function Home() {
         setTimeout(() => setExtremeMode(false), 5000);
       }
 
-      // Normal / Extreme Spawns (disabled during boss) 
+      // Normal / Extreme Spawns
       if (!bossMode) {
         const spawnChance = extremeMode
           ? 0.08
@@ -180,7 +184,7 @@ export default function Home() {
           .filter((o) => o.y < gameHeight)
       );
 
-      // Collision detection 
+      // Collision detection
       obstacles.forEach((o) => {
         const dx = playerPos.x - o.x;
         const dy = playerPos.y - o.y;
@@ -188,6 +192,7 @@ export default function Home() {
         if (distance < 20 + o.size / 2) {
           setRunning(false);
           setHighScore((h) => Math.max(h, Math.floor(score)));
+          saveScore(Math.floor(score)); // 🌍 save score
         }
       });
 
@@ -210,7 +215,6 @@ export default function Home() {
     lastBossScore,
   ]);
 
-
   // player movement
   const handleMove = (x: number, y: number) => {
     const clampedX = Math.max(20, Math.min(x, gameWidth - 20));
@@ -232,6 +236,23 @@ export default function Home() {
     handleMove(e.clientX - rect.left, e.clientY - rect.top);
   };
 
+  // 🌍 Leaderboard functions
+  const fetchLeaderboard = async () => {
+    const res = await fetch("/api/leaderboard");
+    const data = await res.json();
+    setLeaderboard(data);
+  };
+
+  const saveScore = async (finalScore: number) => {
+    if (!usernameSet || !username) return;
+    await fetch("/api/leaderboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, score: finalScore }),
+    });
+    fetchLeaderboard();
+  };
+
   return (
     <div
       ref={gameAreaRef}
@@ -245,13 +266,39 @@ export default function Home() {
         <Obstacle key={o.id} x={o.x} y={o.y} size={o.size} shape={o.shape} />
       ))}
 
+      {/* Username Entry Screen */}
+      {!usernameSet && (
+        <div className="absolute inset-0 bg-black/90 text-white flex flex-col items-center justify-center space-y-4">
+          <h2 className="text-2xl font-bold text-pink-400">Enter Username</h2>
+          <input
+            className="px-4 py-2 rounded text-white"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Your Name"
+          />
+          <button
+            onClick={() => setUsernameSet(true)}
+            className="px-6 py-2 bg-green-500 rounded-lg"
+          >
+            Continue
+          </button>
+          <button
+            onClick={() => {
+              fetchLeaderboard();
+              setShowLeaderboard(true);
+            }}
+            className="text-yellow-400 underline"
+          >
+            View Leaderboard
+          </button>
+        </div>
+      )}
+
       {/* Start Screen */}
-      {showStart && (
+      {showStart && usernameSet && (
         <div className="absolute inset-0 bg-black/80 text-white text-2xl">
           <div className="flex flex-col justify-center items-center h-full">
-            <p className="mb-10 font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(0,255,255,0.7)] text-4xl">
-              Neon Drift
-            </p>
+            <p className="mb-10 font-bold text-blue-400 text-4xl">Neon Drift</p>
             <button
               onClick={() => {
                 setShowStart(false);
@@ -274,23 +321,10 @@ export default function Home() {
       {/* Tutorial Screen */}
       {showTutorial && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50">
-          <p className="text-2xl font-bold text-blue-400 animate-pulse mb-6">
+          <p className="text-2xl text-center font-bold text-blue-400 animate-pulse mb-6">
             Move the ball to dodge obstacles!
           </p>
-
-          {/* Show player ball */}
-          <div
-            className="absolute bg-pink-500 rounded-full shadow-[0_0_15px_rgba(255,0,255,0.8)]"
-            style={{
-              left: playerPos.x - 20,
-              top: playerPos.y - 20,
-              width: 20,
-              height: 20,
-            }}
-          />
-
-          {/* Countdown */}
-          <p className="text-6xl font-bold text-pink-400 drop-shadow-[0_0_10px_rgba(255,0,255,0.8)] mt-20">
+          <p className="text-6xl font-bold text-pink-400 mt-20">
             {tutorialCountdown > 0 ? tutorialCountdown : "GO!"}
           </p>
         </div>
@@ -315,6 +349,36 @@ export default function Home() {
             className="mt-4 px-4 py-2 bg-green-500 rounded-xl"
           >
             Restart
+          </button>
+          <button
+            onClick={() => {
+              fetchLeaderboard();
+              setShowLeaderboard(true);
+            }}
+            className="mt-4 px-4 py-2 bg-blue-500 rounded-xl"
+          >
+            View Leaderboard
+          </button>
+        </div>
+      )}
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <div className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center">
+          <h2 className="text-2xl font-bold mb-4">🌍 World Leaderboard</h2>
+          <ul className="space-y-2">
+            {leaderboard.map((p, i) => (
+              <li key={i} className="text-lg">
+                #{i + 1} {p.username} —{" "}
+                <span className="text-pink-400">{p.score}</span>
+              </li>
+            ))}
+          </ul>
+          <button
+            className="mt-6 bg-gray-700 px-4 py-2 rounded"
+            onClick={() => setShowLeaderboard(false)}
+          >
+            Close
           </button>
         </div>
       )}
