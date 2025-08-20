@@ -269,6 +269,7 @@ export default function Home() {
       {/* Username Entry Screen */}
       {!usernameSet && (
         <div className="absolute inset-0 bg-black/90 text-white flex flex-col items-center justify-center space-y-4">
+          <h1 className="mb-10 font-bold text-blue-400 text-4xl">IS Neon Drift</h1>
           <h2 className="text-2xl font-bold text-pink-400">Enter Username</h2>
           <input
             className="px-4 py-2 rounded text-white"
@@ -298,7 +299,7 @@ export default function Home() {
       {showStart && usernameSet && (
         <div className="absolute inset-0 bg-black/80 text-white text-2xl">
           <div className="flex flex-col justify-center items-center h-full">
-            <p className="mb-10 font-bold text-blue-400 text-4xl">Neon Drift</p>
+            <p className="mb-10 font-bold text-blue-400 text-4xl">IS Neon Drift</p>
             <button
               onClick={() => {
                 setShowStart(false);
@@ -324,6 +325,7 @@ export default function Home() {
           <p className="text-2xl text-center font-bold text-blue-400 animate-pulse mb-6">
             Move the ball to dodge obstacles!
           </p>
+          {/* Show player ball */} <div className="absolute bg-pink-500 rounded-full shadow-[0_0_15px_rgba(255,0,255,0.8)]" style={{ left: playerPos.x - 20, top: playerPos.y - 20, width: 20, height: 20, }} />
           <p className="text-6xl font-bold text-pink-400 mt-20">
             {tutorialCountdown > 0 ? tutorialCountdown : "GO!"}
           </p>
