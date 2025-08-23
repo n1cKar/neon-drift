@@ -46,6 +46,10 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+  // Leaderboard loding
+  const [loading, setLoading] = useState(false);
+
+
   // pool of available shapes
   const shapes: ObstacleType["shape"][] = [
     "square",
@@ -238,9 +242,16 @@ export default function Home() {
 
   // 🌍 Leaderboard functions
   const fetchLeaderboard = async () => {
-    const res = await fetch("/api/leaderboard");
-    const data = await res.json();
-    setLeaderboard(data);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/leaderboard");
+      const data = await res.json();
+      setLeaderboard(data);
+    } catch (err) {
+      console.error("Error fetching leaderboard:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveScore = async (finalScore: number) => {
@@ -367,23 +378,33 @@ export default function Home() {
       {/* Leaderboard Modal */}
       {showLeaderboard && (
         <div className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center">
-          <h2 className="text-2xl font-bold mb-4">🌍 World Leaderboard</h2>
-          <ul className="space-y-2">
-            {leaderboard.map((p, i) => (
-              <li key={i} className="text-lg">
-                #{i + 1} {p.username} —{" "}
-                <span className="text-pink-400">{p.score}</span>
-              </li>
-            ))}
-          </ul>
-          <button
-            className="mt-6 bg-gray-700 px-4 py-2 rounded"
-            onClick={() => setShowLeaderboard(false)}
-          >
-            Close
-          </button>
+          {loading ? (
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-lg">Loading leaderboard...</p>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold mb-4">🌍 World Leaderboard</h2>
+              <ul className="space-y-2">
+                {leaderboard.map((p, i) => (
+                  <li key={i} className="text-lg">
+                    #{i + 1} {p.username} —{" "}
+                    <span className="text-pink-400">{p.score}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="mt-6 bg-gray-700 px-4 py-2 rounded"
+                onClick={() => setShowLeaderboard(false)}
+              >
+                Close
+              </button>
+            </>
+          )}
         </div>
       )}
+
     </div>
   );
 }
